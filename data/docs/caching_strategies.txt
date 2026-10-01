@@ -1,0 +1,52 @@
+Caching Strategies
+
+Caching trades staleness for speed: instead of recomputing or refetching
+data on every request, a cache stores a recent result and serves it
+directly, as long as it's still considered valid. The performance win can
+be dramatic, but caches introduce their own class of bugs, prompting Phil
+Karlton's famous line: "There are only two hard things in Computer
+Science: cache invalidation and naming things."
+
+There are three common patterns for keeping a cache populated. In
+cache-aside (also called lazy loading), the application checks the cache
+first; on a miss, it reads from the database, then writes the result into
+the cache for next time. This is the most common pattern and keeps the
+cache and database loosely coupled, but the first request after
+invalidation always pays the full read cost. In write-through, every
+write goes to the cache and the database together, keeping the cache
+always warm at the cost of extra write latency. In write-behind
+(write-back), writes go to the cache immediately and are flushed to the
+database asynchronously, which is fast but risks data loss if the cache
+fails before the flush completes.
+
+Expiration is usually handled with a time-to-live (TTL): each cache entry
+is stored with an expiry time, after which it's treated as a miss and
+recomputed. Short TTLs keep data fresh but reduce the cache's hit rate;
+long TTLs improve hit rate but risk serving stale data. Explicit
+invalidation — deleting or updating a cache entry the moment the
+underlying data changes — avoids staleness entirely but requires the
+application to correctly track every code path that can change that
+data, which is where most caching bugs come from.
+
+At the HTTP layer, caching is controlled by response headers. Cache-
+Control: max-age=<seconds> tells clients and intermediate caches (CDNs,
+proxies) how long a response can be reused without revalidation. ETag
+provides a fingerprint of the response body; a client can send it back in
+an If-None-Match header on the next request, and the server replies with
+a cheap 304 Not Modified if nothing changed, avoiding a full response
+body transfer.
+
+A CDN caches static and semi-static content (images, JS bundles, and
+sometimes API responses) at edge locations physically close to users,
+cutting both latency and origin server load. Application-level caches
+like Redis or Memcached sit between the application and the database,
+typically caching expensive query results or computed objects as
+key-value pairs.
+
+One failure mode worth designing around is the "thundering herd" or
+cache stampede: when a popular cache entry expires, many concurrent
+requests can all miss at once and hammer the database simultaneously. Two
+common mitigations are request coalescing (only one of the concurrent
+misses actually queries the database, and the rest wait for its result)
+and adding random jitter to TTLs so entries don't all expire at the exact
+same moment.

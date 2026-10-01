@@ -1,0 +1,50 @@
+Database Indexing and Query Performance
+
+Without an index, looking up a row by some column value requires a full
+table scan: the database reads every row and checks whether it matches.
+This is fine for a few hundred rows, but on a table with millions of
+rows, a full scan can take seconds and hammer disk I/O. An index is a
+separate data structure that lets the database find matching rows
+without scanning the whole table, at the cost of extra storage and slower
+writes.
+
+Most relational databases implement indexes as a B-tree (or a close
+variant, like a B+tree). A B-tree keeps keys sorted and balanced across
+multiple levels, so a lookup, insert, or delete takes O(log n) time
+rather than O(n). Because the keys are stored in order, a B-tree index
+also efficiently supports range queries (WHERE created_at > '2026-01-01')
+and ORDER BY on the indexed column, not just exact-match lookups.
+
+A composite (multi-column) index is built over more than one column, and
+column order matters. An index on (user_id, created_at) can efficiently
+serve queries that filter on user_id alone, or on user_id and created_at
+together, because the index is sorted by user_id first and created_at
+second within each user_id group. It cannot efficiently serve a query
+that filters on created_at alone, since the index isn't sorted by that
+column globally — this is often called the "leftmost prefix" rule.
+
+Index selectivity describes how well an index narrows down the rows that
+match. A column like is_active with only two possible values has low
+selectivity: an index on it barely helps, because it still leaves half
+the table to check. A column like email, where nearly every value is
+unique, has high selectivity, and an index on it can eliminate almost all
+non-matching rows immediately. Indexing low-selectivity columns often
+isn't worth the write overhead and storage cost.
+
+Every index added to a table slows down INSERT, UPDATE, and DELETE
+operations, since the database has to keep every index in sync with the
+underlying data on every write. This is why indexing is a tradeoff, not a
+free performance win: a table that's read constantly but rarely written
+benefits from more indexes, while a write-heavy table benefits from
+fewer.
+
+A covering index is one that includes every column a query needs, so the
+database can answer the query directly from the index without touching
+the underlying table row at all — this is often called an
+"index-only scan" and can be significantly faster than a regular index
+lookup followed by a row fetch.
+
+To understand whether a query is actually using an index, most databases
+provide an EXPLAIN (or EXPLAIN ANALYZE) command, which shows the query
+planner's chosen execution plan, including whether it performed an index
+scan or fell back to a sequential scan.

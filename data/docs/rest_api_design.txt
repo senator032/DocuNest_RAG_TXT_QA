@@ -1,0 +1,49 @@
+REST API Design Principles
+
+A RESTful API models a system as a set of resources, each identified by a
+URL, and manipulated through a small set of standard HTTP methods. Good
+REST design keeps URLs noun-based and resource-oriented: /orders/42 refers
+to a specific order, and /orders refers to the collection. Verbs belong in
+the HTTP method, not the URL — avoid endpoints like /getOrder or
+/deleteOrder in favor of GET /orders/42 and DELETE /orders/42.
+
+The core HTTP methods map to CRUD operations. GET retrieves a resource and
+must not have side effects. POST creates a new resource under a
+collection and is neither safe nor idempotent — calling it twice may
+create two resources. PUT replaces a resource entirely and is idempotent:
+calling it multiple times with the same body produces the same result.
+PATCH applies a partial update. DELETE removes a resource and is
+idempotent, since deleting an already-deleted resource still leaves it
+deleted.
+
+Status codes communicate outcome precisely. 200 OK is a generic success
+response; 201 Created should be returned when a POST successfully creates
+a new resource, typically along with a Location header pointing to it.
+204 No Content indicates success with no response body, common for
+DELETE. 400 Bad Request means the request itself is malformed; 401
+Unauthorized means the caller isn't authenticated; 403 Forbidden means
+they are authenticated but not allowed to perform the action; 404 Not
+Found means the resource doesn't exist; 409 Conflict signals a state
+conflict, such as a duplicate unique key; 422 Unprocessable Entity
+indicates the request was well-formed but failed validation; 429 Too Many
+Requests signals rate limiting; and 500 Internal Server Error indicates
+an unhandled failure on the server.
+
+Pagination prevents large collections from being returned in a single
+response. Offset-based pagination (?page=3&page_size=20) is simple but
+can skip or repeat items if the underlying data changes between requests.
+Cursor-based pagination (?after=<opaque_cursor>) is more stable under
+concurrent writes and scales better on large datasets, since it avoids
+the OFFSET scan cost.
+
+APIs evolve, so versioning matters from day one. The two common
+approaches are a version segment in the URL (/v1/orders) and a custom
+request header (Accept: application/vnd.myapi.v1+json). URL versioning is
+easier to discover and debug; header versioning keeps URLs stable but
+requires more discipline from API consumers.
+
+Finally, REST APIs should be stateless: each request must carry all the
+information the server needs to process it (typically via an auth token),
+rather than relying on server-side session state tied to a specific
+server instance. This is what makes REST APIs easy to horizontally scale
+behind a load balancer.

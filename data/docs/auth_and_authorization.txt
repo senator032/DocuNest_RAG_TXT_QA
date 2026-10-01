@@ -1,0 +1,53 @@
+Authentication and Authorization
+
+Authentication answers "who are you?" — verifying an identity, typically
+via a password, a one-time code, or a cryptographic token. Authorization
+answers "what are you allowed to do?" — deciding whether an already-
+authenticated identity can perform a specific action on a specific
+resource. A request can be authenticated but still fail authorization,
+such as a logged-in user trying to delete another user's data.
+
+Session-based authentication is the traditional web approach: after a
+successful login, the server creates a session record (often in a
+database or Redis) and sends the client a session ID in a cookie. On each
+subsequent request, the server looks up the session ID to identify the
+user. This is simple and lets the server immediately revoke access by
+deleting the session, but it requires shared session storage across every
+server instance, since any instance may need to validate any session.
+
+Token-based authentication, most commonly using JSON Web Tokens (JWTs),
+takes a different approach: the server issues a signed token containing
+the user's identity and claims, and the client sends that token with
+every request (typically in an Authorization: Bearer header). A JWT has
+three dot-separated parts: a header (algorithm and token type), a payload
+(claims like user ID, roles, and expiration time), and a signature
+(computed over the header and payload with a secret or private key). The
+server can verify the signature and trust the claims without a database
+lookup, which makes JWTs attractive for stateless, horizontally scaled
+APIs. The tradeoff is that a JWT can't be revoked before it expires
+without extra infrastructure (a blocklist or short expiration plus
+refresh tokens), since the server isn't tracking it anywhere.
+
+Because JWTs are normally short-lived (minutes to an hour), they're
+usually paired with a longer-lived refresh token, which the client
+exchanges for a new access token once the old one expires, without
+forcing the user to log in again. Refresh tokens are typically stored
+server-side so they can be revoked.
+
+OAuth 2.0 is a delegation protocol, not an authentication protocol on its
+own — it lets a user grant a third-party application limited access to
+their data on another service without sharing their password. In the
+authorization code flow, the user is redirected to the resource owner
+(e.g. a login provider), approves the requested scopes, and is redirected
+back with a short-lived authorization code, which the application
+exchanges server-side for an access token. OpenID Connect layers identity
+information on top of OAuth 2.0 to support "log in with X" style
+authentication.
+
+For deciding what an authenticated user can do, role-based access control
+(RBAC) assigns permissions to roles (admin, editor, viewer) and users to
+roles, which is simple to reason about but coarse-grained. Attribute-
+based access control (ABAC) evaluates policies against attributes of the
+user, resource, and context (e.g. "an editor can update a document only
+if they are its owner or in its team"), which is more flexible but more
+complex to implement and audit.

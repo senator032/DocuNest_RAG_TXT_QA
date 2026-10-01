@@ -1,0 +1,50 @@
+Distributed Systems Basics
+
+A system can grow its capacity in two directions. Vertical scaling means
+moving to a bigger machine — more CPU, RAM, or disk on the same node.
+It's simple, since the application doesn't change, but it has a hard
+ceiling and a single point of failure. Horizontal scaling means adding
+more machines and spreading load across them. It scales further and adds
+redundancy, but requires the application to be designed for it — in
+particular, avoiding reliance on in-memory state tied to one specific
+instance.
+
+A load balancer sits in front of a horizontally scaled service and
+distributes incoming requests across the available instances. Round
+robin sends requests to each instance in turn, which is simple but
+ignores how busy each instance currently is. Least connections routes
+each request to the instance currently handling the fewest active
+requests, which adapts better when requests take varying amounts of time.
+Health checks let the load balancer stop routing traffic to an instance
+that's failing or overloaded, until it recovers.
+
+The CAP theorem describes a fundamental tradeoff in distributed data
+systems: when a network partition occurs (some nodes can't communicate
+with others), a system can guarantee at most two of Consistency (every
+read sees the most recent write, everywhere), Availability (every request
+gets a non-error response), and Partition tolerance (the system keeps
+working despite the partition). Because network partitions can always
+happen in a real distributed system, partition tolerance isn't really
+optional — the practical choice is between consistency and availability
+during a partition. A system that chooses consistency (CP) will refuse
+some requests during a partition rather than risk returning stale data; a
+system that chooses availability (AP) will keep answering requests, but
+some of those answers may be stale until the partition heals.
+
+Message queues (RabbitMQ, Amazon SQS, Kafka, and similar systems)
+decouple the producer of some work from the consumer that eventually
+processes it. Instead of a service calling another service directly and
+waiting for a response, it publishes a message to a queue and moves on;
+one or more worker processes consume messages from the queue at their own
+pace. This absorbs traffic spikes (the queue buffers work instead of
+overwhelming a downstream service), lets producers and consumers scale
+and deploy independently, and makes it easier to retry failed work
+without blocking the original request. The tradeoff is added complexity
+and, in most designs, eventual rather than immediate processing.
+
+Eventual consistency is the broader idea behind many of these tradeoffs:
+rather than requiring every replica of some data to agree instantly on
+every write, the system guarantees that if no new writes occur, all
+replicas will converge to the same value given enough time. This relaxed
+guarantee is what makes many highly available, horizontally scaled
+systems possible in the first place.
