@@ -1,6 +1,6 @@
-# NexaDocs
+# DocuNest
 
-NexaDocs is a private, evidence-first document assistant: ask questions in
+DocuNest is a private, evidence-first document assistant: ask questions in
 plain language and get concise answers with the source chunks that informed
 them.
 
@@ -200,7 +200,7 @@ Notes for hosting this:
 ## Project structure
 
 ```
-NexaDocs/
+DocuNest/
   Procfile             deploy start command (rebuild index, then run uvicorn)
   data/
     docs/            sample source documents (.txt)

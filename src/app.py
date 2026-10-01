@@ -31,7 +31,7 @@ STATIC_DIR = os.path.join(SRC_DIR, "static")
 MAX_UPLOAD_BYTES = 256 * 1024
 
 app = FastAPI(
-    title="NexaDocs",
+    title="DocuNest",
     description="Evidence-first question answering over a local document workspace.",
 )
 
